@@ -10,7 +10,7 @@ import {
 } from "react-router";
 import { nanoid } from "nanoid";
 
-import { names, type ChatMessage, type Message, type SvgAttachment } from "../shared";
+import { type ChatMessage, type Message, type SvgAttachment } from "../shared";
 
 // Handwriting Canvas Component
 function HandwritingCanvas({
@@ -448,7 +448,7 @@ function App() {
     currentMessageIdRef.current = messageId;
     
     formData.append("room", room || "default");
-    formData.append("user", name);
+    formData.append("user", name || "Anonymous");
     formData.append("messageId", messageId);
 
     for (let i = 0; i < files.length; i++) {
@@ -498,7 +498,7 @@ function App() {
     currentMessageIdRef.current = messageId;
     
     formData.append("room", room || "default");
-    formData.append("user", name);
+    formData.append("user", name || "Anonymous");
     formData.append("messageId", messageId);
     formData.append("svgs", svgBlob, filename);
 
@@ -603,7 +603,7 @@ function App() {
           const chatMessage: ChatMessage = {
             id: currentMessageIdRef.current || nanoid(8),
             content: content.value,
-            user: name,
+            user: name || "Anonymous",
             role: "user",
             timestamp: Date.now(),
             svgs: pendingSvgs.length > 0 ? pendingSvgs : undefined,
