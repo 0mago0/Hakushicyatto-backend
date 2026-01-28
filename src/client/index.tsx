@@ -205,8 +205,61 @@ function HandwritingCanvas({
   );
 }
 
+// Name Input Modal Component
+function NameInputModal({
+  onSubmit,
+}: {
+  onSubmit: (name: string) => void;
+}) {
+  const [inputName, setInputName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = inputName.trim();
+    if (trimmedName) {
+      onSubmit(trimmedName);
+    }
+  };
+
+  return (
+    <div className="name-input-overlay">
+      <div className="name-input-modal">
+        <h2>歡迎來到聊天室</h2>
+        <p>請輸入您的名稱以開始聊天</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputName}
+            onChange={(e) => setInputName(e.target.value)}
+            placeholder="輸入您的名稱..."
+            className="name-input"
+            maxLength={20}
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className="name-submit-btn"
+            disabled={!inputName.trim()}
+          >
+            開始聊天
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function App() {
-  const [name] = useState(names[Math.floor(Math.random() * names.length)]);
+  const [name, setName] = useState<string | null>(() => {
+    // Try to load name from localStorage
+    return localStorage.getItem("chat-username");
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pendingSvgs, setPendingSvgs] = useState<SvgAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -214,6 +267,11 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentMessageIdRef = useRef<string | null>(null);
   const { room } = useParams();
+
+  const handleNameSubmit = (newName: string) => {
+    localStorage.setItem("chat-username", newName);
+    setName(newName);
+  };
 
   const socket = usePartySocket({
     party: "chat",
@@ -489,6 +547,9 @@ function App() {
           </button>
         </div>
       </form>
+
+      {/* Name Input Modal */}
+      {!name && <NameInputModal onSubmit={handleNameSubmit} />}
     </div>
   );
 }

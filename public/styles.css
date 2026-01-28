@@ -477,6 +477,97 @@ body, html {
   box-shadow: none;
 }
 
+/* Name Input Modal */
+.name-input-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name-input-modal {
+  background-color: var(--system-white);
+  padding: 32px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.name-input-modal h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.name-input-modal p {
+  margin: 0 0 24px 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.name-input-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.name-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 17px;
+  outline: none;
+  appearance: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.name-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.name-input:focus {
+  border-color: var(--system-blue);
+}
+
+.name-submit-btn {
+  width: 100%;
+  height: 50px;
+  border-radius: 12px;
+  border: none;
+  background-color: var(--system-blue);
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.name-submit-btn:hover:not(:disabled) {
+  background-color: var(--system-blue-dark);
+}
+
+.name-submit-btn:disabled {
+  background-color: var(--separator);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
 /* Hide scrollbar for cleaner look */
 .messages-container::-webkit-scrollbar {
   width: 0px; 
