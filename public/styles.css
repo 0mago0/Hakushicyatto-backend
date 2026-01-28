@@ -28,6 +28,9 @@ html {
 .message .user {
   font-weight: bold;
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .message .remove {
@@ -53,10 +56,20 @@ html {
 
 /* SVG Upload Styles */
 .svg-attachments {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 2px;
+  margin-top: 4px;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.svg-inline {
+  height: 2.5em;
+  width: auto;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 2px;
 }
 
 .svg-preview {
@@ -82,6 +95,13 @@ html {
   margin-top: 4px;
   word-break: break-all;
   text-align: center;
+}
+
+.message-time {
+  font-size: 10px;
+  color: #666;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 .pending-svgs {

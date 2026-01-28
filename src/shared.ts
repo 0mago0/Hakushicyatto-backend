@@ -9,6 +9,7 @@ export type ChatMessage = {
   content: string;
   user: string;
   role: "user" | "assistant";
+  timestamp?: number;
   svgs?: SvgAttachment[];
 };
 
@@ -19,6 +20,7 @@ export type Message =
       content: string;
       user: string;
       role: "user" | "assistant";
+      timestamp?: number;
       svgs?: SvgAttachment[];
     }
   | {
@@ -27,6 +29,7 @@ export type Message =
       content: string;
       user: string;
       role: "user" | "assistant";
+      timestamp?: number;
       svgs?: SvgAttachment[];
     }
   | {

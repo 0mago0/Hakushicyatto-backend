@@ -22,7 +22,7 @@ export class Chat extends Server<Env> {
 
     // create the messages table if it doesn't exist
     this.ctx.storage.sql.exec(
-      `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, user TEXT, role TEXT, content TEXT, svgs TEXT)`,
+      `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, user TEXT, role TEXT, content TEXT, timestamp INTEGER, svgs TEXT)`,
     );
 
     // load the messages from the database
@@ -33,6 +33,7 @@ export class Chat extends Server<Env> {
       user: string;
       role: "user" | "assistant";
       content: string;
+      timestamp?: number;
       svgs: string | null;
     }>;
 
@@ -41,6 +42,7 @@ export class Chat extends Server<Env> {
       user: row.user,
       role: row.role,
       content: row.content,
+      timestamp: row.timestamp,
       svgs: row.svgs ? JSON.parse(row.svgs) : undefined,
     }));
   }
@@ -72,13 +74,15 @@ export class Chat extends Server<Env> {
 
     // Use parameterized query to avoid SQL injection and syntax issues
     this.ctx.storage.sql.exec(
-      `INSERT INTO messages (id, user, role, content, svgs) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET content = ?, svgs = ?`,
+      `INSERT INTO messages (id, user, role, content, timestamp, svgs) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET content = ?, timestamp = ?, svgs = ?`,
       message.id,
       message.user,
       message.role,
       message.content,
+      message.timestamp || null,
       svgsJson,
       message.content,
+      message.timestamp || null,
       svgsJson,
     );
   }
@@ -95,6 +99,7 @@ export class Chat extends Server<Env> {
         content: parsed.content,
         user: parsed.user,
         role: parsed.role,
+        timestamp: parsed.timestamp,
         svgs: parsed.svgs,
       });
     }
@@ -136,8 +141,12 @@ async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
       const fileId = crypto.randomUUID();
       const key = `svgs/${safeRoom}/${safeUser}/${safeMessageId}/${file.name}`;
 
+      // Read and normalize SVG
+      const svgContent = await file.text();
+      const normalizedSvg = normalizeSvg(svgContent);
+
       // Upload to R2
-      await env.SVG_BUCKET.put(key, file.stream(), {
+      await env.SVG_BUCKET.put(key, normalizedSvg, {
         httpMetadata: {
           contentType: "image/svg+xml",
         },
@@ -160,6 +169,59 @@ async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
       headers: { "Content-Type": "application/json" },
     });
   }
+}
+
+function normalizeSvg(svgContent: string): string {
+  // Parse SVG to find viewBox or width/height
+  const viewBoxMatch = svgContent.match(/viewBox=["']([^"']+)["']/);
+  let x = 0, y = 0, width = 100, height = 100;
+
+  if (viewBoxMatch) {
+    const [vx, vy, vw, vh] = viewBoxMatch[1].split(/\s+/).map(Number);
+    x = vx;
+    y = vy;
+    width = vw;
+    height = vh;
+  } else {
+    // Try to extract width/height attributes
+    const widthMatch = svgContent.match(/width=["']([^"']+)["']/);
+    const heightMatch = svgContent.match(/height=["']([^"']+)["']/);
+    if (widthMatch) width = parseFloat(widthMatch[1]);
+    if (heightMatch) height = parseFloat(heightMatch[1]);
+  }
+
+  // Normalize to consistent size (300x300 viewBox)
+  const targetSize = 300;
+  const scale = targetSize / Math.max(width, height);
+  const scaledWidth = width * scale;
+  const scaledHeight = height * scale;
+
+  // Center the content
+  const offsetX = (targetSize - scaledWidth) / 2 - x * scale;
+  const offsetY = (targetSize - scaledHeight) / 2 - y * scale;
+
+  // Add transform to normalize
+  let normalized = svgContent.replace(
+    /<svg[^>]*>/,
+    `<svg viewBox="0 0 ${targetSize} ${targetSize}" xmlns="http://www.w3.org/2000/svg">`
+  );
+
+  // If there's no g element wrapping the content, add one with transform
+  if (!normalized.includes("<g")) {
+    normalized = normalized.replace(
+      /(<svg[^>]*>)/,
+      `$1<g transform="translate(${offsetX},${offsetY}) scale(${scale})">`
+    );
+    normalized = normalized.replace("</svg>", "</g></svg>");
+  } else {
+    // Update existing g element with transform
+    normalized = normalized.replace(
+      /<g([^>]*)>/,
+      `<g$1 transform="translate(${offsetX},${offsetY}) scale(${scale})">`
+    );
+  }
+
+  return normalized;
 }
 
 async function handleSvgGet(key: string, env: Env): Promise<Response> {

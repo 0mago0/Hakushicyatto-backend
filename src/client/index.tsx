@@ -231,6 +231,7 @@ function App() {
               content: message.content,
               user: message.user,
               role: message.role,
+              timestamp: message.timestamp,
               svgs: message.svgs,
             },
           ]);
@@ -246,6 +247,7 @@ function App() {
                 content: message.content,
                 user: message.user,
                 role: message.role,
+                timestamp: message.timestamp,
                 svgs: message.svgs,
               })
               .concat(messages.slice(foundIndex + 1));
@@ -260,6 +262,7 @@ function App() {
                   content: message.content,
                   user: message.user,
                   role: message.role,
+                  timestamp: message.timestamp,
                   svgs: message.svgs,
                 }
               : m,
@@ -364,16 +367,26 @@ function App() {
       )}
       {messages.map((message) => (
         <div key={message.id} className="row message">
-          <div className="two columns user">{message.user}</div>
+          <div className="two columns user">
+            <div>{message.user}</div>
+            {message.timestamp && (
+              <div className="message-time">
+                {new Date(message.timestamp).toLocaleString()}
+              </div>
+            )}
+          </div>
           <div className="ten columns">
             <div>{message.content}</div>
             {message.svgs && message.svgs.length > 0 && (
               <div className="svg-attachments">
                 {message.svgs.map((svg) => (
-                  <div key={svg.id} className="svg-preview">
-                    <img src={svg.url} alt={svg.filename} />
-                    <span className="svg-filename">{svg.filename}</span>
-                  </div>
+                  <img
+                    key={svg.id}
+                    src={svg.url}
+                    alt={svg.filename}
+                    className="svg-inline"
+                    title={svg.filename}
+                  />
                 ))}
               </div>
             )}
@@ -417,6 +430,7 @@ function App() {
             content: content.value,
             user: name,
             role: "user",
+            timestamp: Date.now(),
             svgs: pendingSvgs.length > 0 ? pendingSvgs : undefined,
           };
           setMessages((messages) => [...messages, chatMessage]);
