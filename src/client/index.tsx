@@ -17,7 +17,7 @@ function HandwritingCanvas({
   onSave,
   onClose,
 }: {
-  onSave: (svgBlob: Blob) => void;
+  onSave: (svgBlob: Blob, keepOpen: boolean) => void;
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,9 +122,40 @@ function HandwritingCanvas({
   };
 
   const saveAsSvg = () => {
-    // Generate SVG from paths
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">`;
-    svgContent += `<rect width="400" height="300" fill="#ffffff"/>`;
+    // Calculate bounding box of all paths
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    for (const path of paths) {
+      for (const point of path.points) {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      }
+    }
+    
+    // Add padding for stroke width
+    const maxStrokeWidth = Math.max(...paths.map(p => p.width), 3);
+    const padding = maxStrokeWidth + 4;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = maxX + padding;
+    maxY = maxY + padding;
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    
+    // Normalize to 300x300 output with proper scaling
+    const targetSize = 300;
+    const scale = targetSize / Math.max(contentWidth, contentHeight);
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    const offsetX = (targetSize - scaledWidth) / 2;
+    const offsetY = (targetSize - scaledHeight) / 2;
+    
+    // Generate SVG with 300x300 viewBox and transformed content
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${targetSize}" height="${targetSize}" viewBox="0 0 ${targetSize} ${targetSize}">`;
+    svgContent += `<g transform="translate(${offsetX.toFixed(2)},${offsetY.toFixed(2)}) scale(${scale.toFixed(4)}) translate(${(-minX).toFixed(2)},${(-minY).toFixed(2)})">`;
 
     for (const path of paths) {
       if (path.points.length < 2) continue;
@@ -134,10 +165,74 @@ function HandwritingCanvas({
       svgContent += `<path d="${d}" stroke="${path.color}" stroke-width="${path.width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
 
-    svgContent += `</svg>`;
+    svgContent += `</g></svg>`;
 
     const blob = new Blob([svgContent], { type: "image/svg+xml" });
-    onSave(blob);
+    return blob;
+  };
+
+  const handleSaveAndContinue = () => {
+    if (paths.length === 0) return;
+    const blob = generateSvgBlob();
+    onSave(blob, true); // keepOpen = true
+    // Clear canvas for next character
+    setPaths([]);
+    setCurrentPath([]);
+  };
+
+  const handleSaveAndClose = () => {
+    if (paths.length === 0) return;
+    const blob = generateSvgBlob();
+    onSave(blob, false); // keepOpen = false
+  };
+
+  const generateSvgBlob = () => {
+    // Calculate bounding box of all paths
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    for (const path of paths) {
+      for (const point of path.points) {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      }
+    }
+    
+    // Add padding for stroke width
+    const maxStrokeWidth = Math.max(...paths.map(p => p.width), 3);
+    const padding = maxStrokeWidth + 4;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = maxX + padding;
+    maxY = maxY + padding;
+    
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    
+    // Normalize to 300x300 output with proper scaling
+    const targetSize = 300;
+    const scale = targetSize / Math.max(contentWidth, contentHeight);
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    const offsetX = (targetSize - scaledWidth) / 2;
+    const offsetY = (targetSize - scaledHeight) / 2;
+    
+    // Generate SVG with 300x300 viewBox and transformed content
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${targetSize}" height="${targetSize}" viewBox="0 0 ${targetSize} ${targetSize}">`;
+    svgContent += `<g transform="translate(${offsetX.toFixed(2)},${offsetY.toFixed(2)}) scale(${scale.toFixed(4)}) translate(${(-minX).toFixed(2)},${(-minY).toFixed(2)})">`;
+
+    for (const path of paths) {
+      if (path.points.length < 2) continue;
+      const d = path.points
+        .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+        .join(" ");
+      svgContent += `<path d="${d}" stroke="${path.color}" stroke-width="${path.width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+
+    svgContent += `</g></svg>`;
+
+    return new Blob([svgContent], { type: "image/svg+xml" });
   };
 
   return (
@@ -193,11 +288,19 @@ function HandwritingCanvas({
           </button>
           <button
             type="button"
-            className="save-btn"
-            onClick={saveAsSvg}
+            className="continue-btn"
+            onClick={handleSaveAndContinue}
             disabled={paths.length === 0}
           >
-            💾 儲存並上傳
+            ➕ 繼續寫
+          </button>
+          <button
+            type="button"
+            className="save-btn"
+            onClick={handleSaveAndClose}
+            disabled={paths.length === 0}
+          >
+            ✓ 完成
           </button>
         </div>
       </div>
@@ -384,7 +487,7 @@ function App() {
     });
   };
 
-  const handleHandwritingSave = async (svgBlob: Blob) => {
+  const handleHandwritingSave = async (svgBlob: Blob, keepOpen: boolean) => {
     setUploading(true);
     const formData = new FormData();
     const filename = `handwriting-${Date.now()}.svg`;
@@ -411,7 +514,9 @@ function App() {
       console.error("Upload failed:", error);
     } finally {
       setUploading(false);
-      setShowHandwriting(false);
+      if (!keepOpen) {
+        setShowHandwriting(false);
+      }
     }
   };
 
@@ -440,20 +545,22 @@ function App() {
               
               <div className="message-bubble-wrapper">
                 <div className="message-bubble">
-                  {message.content && <div className="message-text">{message.content}</div>}
-                  {message.svgs && message.svgs.length > 0 && (
-                    <div className="svg-attachments">
-                      {message.svgs.map((svg) => (
-                        <img
-                          key={svg.id}
-                          src={svg.url}
-                          alt={svg.filename}
-                          className="svg-inline"
-                          title={svg.filename}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <span className="message-text">
+                    {message.content}
+                    {message.svgs && message.svgs.length > 0 && (
+                      <>
+                        {message.svgs.map((svg) => (
+                          <img
+                            key={svg.id}
+                            src={svg.url}
+                            alt={svg.filename}
+                            className="svg-inline"
+                            title={svg.filename}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </span>
                 </div>
               </div>
             </div>

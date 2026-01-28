@@ -34,11 +34,6 @@
 		{
 			"binding": "SVG_BUCKET",
 			"bucket_name": "chat-svg-uploads"
-		},
-		{
-			"bucket_name": "chat-svg-uploads",
-			"binding": "chat_svg_uploads",
-			"remote": true
 		}
 	]
 }

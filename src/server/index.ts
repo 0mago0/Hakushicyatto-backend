@@ -190,8 +190,13 @@ function normalizeSvg(svgContent: string): string {
     if (heightMatch) height = parseFloat(heightMatch[1]);
   }
 
-  // Normalize to consistent size (300x300 viewBox)
+  // Skip normalization if already 300x300 (from frontend)
   const targetSize = 300;
+  if (x === 0 && y === 0 && width === targetSize && height === targetSize) {
+    return svgContent;
+  }
+
+  // Normalize to consistent size (300x300 viewBox)
   const scale = targetSize / Math.max(width, height);
   const scaledWidth = width * scale;
   const scaledHeight = height * scale;

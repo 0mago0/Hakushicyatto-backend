@@ -3,6 +3,7 @@
   /* System Colors */
   --system-blue: #007AFF;
   --system-blue-dark: #0056b3;
+  --system-green: #34C759;
   --system-gray-bg: #F2F2F7;
   --system-white: #FFFFFF;
   --bubble-incoming: #E9E9EB;
@@ -27,6 +28,7 @@
   :root {
     --system-blue: #0A84FF;
     --system-blue-dark: #0060c0;
+    --system-green: #30D158;
     --system-gray-bg: #000000;
     --system-white: #1C1C1E; /* System Secondary Background */
     --bubble-incoming: #262628;
@@ -163,21 +165,27 @@ body, html {
 .message-text {
   margin: 0;
   white-space: pre-wrap;
+  display: inline; /* Allow inline flow with SVGs */
 }
 
-/* SVG Attachments */
-.svg-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
+/* SVG Attachments - Inline like text */
 .svg-inline {
-  background: rgba(255,255,255,0.9);
-  border-radius: 8px;
-  padding: 4px;
-  height: 3em; 
+  display: inline-block;
+  vertical-align: middle;
+  height: 2em; /* Larger for readability */
+  width: auto;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+
+/* SVG in outgoing (blue) bubbles - invert strokes to white */
+.message-row.my-message .svg-inline {
+  filter: invert(1) brightness(2);
+}
+
+/* SVG in incoming (gray) bubbles - keep original dark strokes */
+.message-row.other-message .svg-inline {
+  filter: none;
 }
 
 /* Input Bar - Sticky Bottom */
@@ -457,6 +465,24 @@ body, html {
 .cancel-btn {
   background: transparent;
   color: var(--system-blue);
+}
+
+.continue-btn {
+  background-color: var(--system-green, #34C759) !important;
+  color: #FFFFFF !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 20px !important;
+}
+
+.continue-btn:disabled {
+  background-color: var(--separator) !important;
+  color: var(--text-secondary) !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .save-btn {
