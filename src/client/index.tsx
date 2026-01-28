@@ -62,7 +62,8 @@ function HandwritingCanvas({
     setCurrentPath((prev) => [...prev, coords]);
   }, [isDrawing, getCoordinates]);
 
-  const stopDrawing = useCallback(() => {
+  const stopDrawing = useCallback((e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) e.preventDefault();
     if (isDrawing && currentPath.length > 0) {
       setPaths((prev) => [...prev, { points: currentPath, color: strokeColor, width: strokeWidth }]);
       setCurrentPath([]);

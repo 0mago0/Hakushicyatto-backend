@@ -365,6 +365,10 @@ body, html {
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  /* Prevent text selection and iOS gestures */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 @media (max-width: 768px) {
@@ -443,6 +447,11 @@ body, html {
   touch-action: none;
   cursor: crosshair;
   background: white; /* Always white canvas even in dark mode initially */
+  /* Prevent iOS text selection and callout */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 /* Modal Actions */
