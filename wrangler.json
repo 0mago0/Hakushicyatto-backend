@@ -1,7 +1,7 @@
 {
 	"compatibility_date": "2025-04-01",
 	"main": "src/server/index.ts",
-	"name": "durable-chat-template",
+	"name": "hakushicyatto-backend",
 	"migrations": [
 		{
 			"new_sqlite_classes": [
