@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { usePartySocket } from "partysocket/react";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -12,11 +12,205 @@ import { nanoid } from "nanoid";
 
 import { names, type ChatMessage, type Message, type SvgAttachment } from "../shared";
 
+// Handwriting Canvas Component
+function HandwritingCanvas({
+  onSave,
+  onClose,
+}: {
+  onSave: (svgBlob: Blob) => void;
+  onClose: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [paths, setPaths] = useState<Array<{ points: Array<{ x: number; y: number }>; color: string; width: number }>>([]);
+  const [currentPath, setCurrentPath] = useState<Array<{ x: number; y: number }>>([]);
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [strokeWidth, setStrokeWidth] = useState(3);
+
+  const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    if ("touches" in e) {
+      const touch = e.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }, []);
+
+  const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDrawing(true);
+    const coords = getCoordinates(e);
+    setCurrentPath([coords]);
+  }, [getCoordinates]);
+
+  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const coords = getCoordinates(e);
+    setCurrentPath((prev) => [...prev, coords]);
+  }, [isDrawing, getCoordinates]);
+
+  const stopDrawing = useCallback(() => {
+    if (isDrawing && currentPath.length > 0) {
+      setPaths((prev) => [...prev, { points: currentPath, color: strokeColor, width: strokeWidth }]);
+      setCurrentPath([]);
+    }
+    setIsDrawing(false);
+  }, [isDrawing, currentPath, strokeColor, strokeWidth]);
+
+  // Redraw canvas whenever paths or currentPath changes
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw all saved paths
+    for (const path of paths) {
+      if (path.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = path.width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(path.points[0].x, path.points[0].y);
+      for (let i = 1; i < path.points.length; i++) {
+        ctx.lineTo(path.points[i].x, path.points[i].y);
+      }
+      ctx.stroke();
+    }
+
+    // Draw current path
+    if (currentPath.length >= 2) {
+      ctx.beginPath();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = strokeWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(currentPath[0].x, currentPath[0].y);
+      for (let i = 1; i < currentPath.length; i++) {
+        ctx.lineTo(currentPath[i].x, currentPath[i].y);
+      }
+      ctx.stroke();
+    }
+  }, [paths, currentPath, strokeColor, strokeWidth]);
+
+  const clearCanvas = () => {
+    setPaths([]);
+    setCurrentPath([]);
+  };
+
+  const undoLast = () => {
+    setPaths((prev) => prev.slice(0, -1));
+  };
+
+  const saveAsSvg = () => {
+    // Generate SVG from paths
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">`;
+    svgContent += `<rect width="400" height="300" fill="#ffffff"/>`;
+
+    for (const path of paths) {
+      if (path.points.length < 2) continue;
+      const d = path.points
+        .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+        .join(" ");
+      svgContent += `<path d="${d}" stroke="${path.color}" stroke-width="${path.width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+
+    svgContent += `</svg>`;
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml" });
+    onSave(blob);
+  };
+
+  return (
+    <div className="handwriting-overlay">
+      <div className="handwriting-modal">
+        <div className="handwriting-header">
+          <h3>手寫板</h3>
+          <button type="button" className="close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="handwriting-tools">
+          <label>
+            顏色:
+            <input
+              type="color"
+              value={strokeColor}
+              onChange={(e) => setStrokeColor(e.target.value)}
+            />
+          </label>
+          <label>
+            粗細:
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={strokeWidth}
+              onChange={(e) => setStrokeWidth(Number(e.target.value))}
+            />
+            <span>{strokeWidth}px</span>
+          </label>
+          <button type="button" onClick={undoLast} disabled={paths.length === 0}>
+            ↩ 復原
+          </button>
+          <button type="button" onClick={clearCanvas}>
+            🗑 清除
+          </button>
+        </div>
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={300}
+          className="handwriting-canvas"
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+        <div className="handwriting-actions">
+          <button type="button" className="cancel-btn" onClick={onClose}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="save-btn"
+            onClick={saveAsSvg}
+            disabled={paths.length === 0}
+          >
+            💾 儲存並上傳
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [name] = useState(names[Math.floor(Math.random() * names.length)]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pendingSvgs, setPendingSvgs] = useState<SvgAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showHandwriting, setShowHandwriting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { room } = useParams();
 
@@ -114,8 +308,38 @@ function App() {
     setPendingSvgs((prev) => prev.filter((svg) => svg.id !== id));
   };
 
+  const handleHandwritingSave = async (svgBlob: Blob) => {
+    setUploading(true);
+    const formData = new FormData();
+    const filename = `handwriting-${Date.now()}.svg`;
+    formData.append("svgs", svgBlob, filename);
+
+    try {
+      const response = await fetch("/api/svg/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json() as { svgs: SvgAttachment[] };
+        setPendingSvgs((prev) => [...prev, ...data.svgs]);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setUploading(false);
+      setShowHandwriting(false);
+    }
+  };
+
   return (
     <div className="chat container">
+      {showHandwriting && (
+        <HandwritingCanvas
+          onSave={handleHandwritingSave}
+          onClose={() => setShowHandwriting(false)}
+        />
+      )}
       {messages.map((message) => (
         <div key={message.id} className="row message">
           <div className="two columns user">{message.user}</div>
@@ -197,9 +421,17 @@ function App() {
             style={{ display: "none" }}
             id="svg-upload"
           />
-          <label htmlFor="svg-upload" className="upload-btn">
+          <label htmlFor="svg-upload" className="upload-btn" title="上傳 SVG 檔案">
             {uploading ? "⏳" : "📎"}
           </label>
+          <button
+            type="button"
+            className="upload-btn"
+            onClick={() => setShowHandwriting(true)}
+            title="開啟手寫板"
+          >
+            ✏️
+          </button>
           <input
             type="text"
             name="content"
