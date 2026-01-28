@@ -22,13 +22,27 @@ export class Chat extends Server<Env> {
 
     // create the messages table if it doesn't exist
     this.ctx.storage.sql.exec(
-      `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, user TEXT, role TEXT, content TEXT)`,
+      `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, user TEXT, role TEXT, content TEXT, svgs TEXT)`,
     );
 
     // load the messages from the database
-    this.messages = this.ctx.storage.sql
+    const rows = this.ctx.storage.sql
       .exec(`SELECT * FROM messages`)
-      .toArray() as ChatMessage[];
+      .toArray() as Array<{
+      id: string;
+      user: string;
+      role: "user" | "assistant";
+      content: string;
+      svgs: string | null;
+    }>;
+
+    this.messages = rows.map((row) => ({
+      id: row.id,
+      user: row.user,
+      role: row.role,
+      content: row.content,
+      svgs: row.svgs ? JSON.parse(row.svgs) : undefined,
+    }));
   }
 
   onConnect(connection: Connection) {
@@ -43,6 +57,8 @@ export class Chat extends Server<Env> {
   saveMessage(message: ChatMessage) {
     // check if the message already exists
     const existingMessage = this.messages.find((m) => m.id === message.id);
+    const svgsJson = message.svgs ? JSON.stringify(message.svgs) : null;
+
     if (existingMessage) {
       this.messages = this.messages.map((m) => {
         if (m.id === message.id) {
@@ -54,14 +70,16 @@ export class Chat extends Server<Env> {
       this.messages.push(message);
     }
 
+    // Use parameterized query to avoid SQL injection and syntax issues
     this.ctx.storage.sql.exec(
-      `INSERT INTO messages (id, user, role, content) VALUES ('${
-        message.id
-      }', '${message.user}', '${message.role}', ${JSON.stringify(
-        message.content,
-      )}) ON CONFLICT (id) DO UPDATE SET content = ${JSON.stringify(
-        message.content,
-      )}`,
+      `INSERT INTO messages (id, user, role, content, svgs) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET content = ?, svgs = ?`,
+      message.id,
+      message.user,
+      message.role,
+      message.content,
+      svgsJson,
+      message.content,
+      svgsJson,
     );
   }
 
@@ -72,13 +90,101 @@ export class Chat extends Server<Env> {
     // let's update our local messages store
     const parsed = JSON.parse(message as string) as Message;
     if (parsed.type === "add" || parsed.type === "update") {
-      this.saveMessage(parsed);
+      this.saveMessage({
+        id: parsed.id,
+        content: parsed.content,
+        user: parsed.user,
+        role: parsed.role,
+        svgs: parsed.svgs,
+      });
     }
   }
 }
 
+async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  try {
+    const formData = await request.formData();
+    const files = formData.getAll("svgs") as File[];
+
+    if (files.length === 0) {
+      return new Response(JSON.stringify({ error: "No files uploaded" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const uploadedSvgs: Array<{ id: string; url: string; filename: string }> = [];
+
+    for (const file of files) {
+      // Validate file type
+      if (file.type !== "image/svg+xml" && !file.name.endsWith(".svg")) {
+        continue; // Skip non-SVG files
+      }
+
+      const id = crypto.randomUUID();
+      const key = `svgs/${id}/${file.name}`;
+
+      // Upload to R2
+      await env.SVG_BUCKET.put(key, file.stream(), {
+        httpMetadata: {
+          contentType: "image/svg+xml",
+        },
+      });
+
+      uploadedSvgs.push({
+        id,
+        url: `/api/svg/${key}`,
+        filename: file.name,
+      });
+    }
+
+    return new Response(JSON.stringify({ svgs: uploadedSvgs }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    return new Response(JSON.stringify({ error: "Upload failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+async function handleSvgGet(key: string, env: Env): Promise<Response> {
+  const object = await env.SVG_BUCKET.get(key);
+
+  if (!object) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=31536000",
+    },
+  });
+}
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // Handle SVG upload API
+    if (url.pathname === "/api/svg/upload") {
+      return handleSvgUpload(request, env);
+    }
+
+    // Handle SVG retrieval
+    if (url.pathname.startsWith("/api/svg/svgs/")) {
+      // Decode URL path for non-ASCII filenames (e.g., Chinese characters)
+      const key = decodeURIComponent(url.pathname.replace("/api/svg/", ""));
+      return handleSvgGet(key, env);
+    }
+
     return (
       (await routePartykitRequest(request, { ...env })) ||
       env.ASSETS.fetch(request)

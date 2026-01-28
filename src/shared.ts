@@ -1,8 +1,15 @@
+export type SvgAttachment = {
+  id: string;
+  url: string;
+  filename: string;
+};
+
 export type ChatMessage = {
   id: string;
   content: string;
   user: string;
   role: "user" | "assistant";
+  svgs?: SvgAttachment[];
 };
 
 export type Message =
@@ -12,6 +19,7 @@ export type Message =
       content: string;
       user: string;
       role: "user" | "assistant";
+      svgs?: SvgAttachment[];
     }
   | {
       type: "update";
@@ -19,6 +27,7 @@ export type Message =
       content: string;
       user: string;
       role: "user" | "assistant";
+      svgs?: SvgAttachment[];
     }
   | {
       type: "all";
