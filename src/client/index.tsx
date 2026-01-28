@@ -212,6 +212,7 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [showHandwriting, setShowHandwriting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentMessageIdRef = useRef<string | null>(null);
   const { room } = useParams();
 
   const socket = usePartySocket({
@@ -276,9 +277,13 @@ function App() {
 
     setUploading(true);
     const formData = new FormData();
+    // Use existing messageId if available, otherwise create a new one
+    const messageId = currentMessageIdRef.current || nanoid(8);
+    currentMessageIdRef.current = messageId;
+    
     formData.append("room", room || "default");
     formData.append("user", name);
-    formData.append("messageId", nanoid(8));
+    formData.append("messageId", messageId);
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -308,16 +313,27 @@ function App() {
   };
 
   const removePendingSvg = (id: string) => {
-    setPendingSvgs((prev) => prev.filter((svg) => svg.id !== id));
+    setPendingSvgs((prev) => {
+      const updated = prev.filter((svg) => svg.id !== id);
+      // Clear messageId when all SVGs are removed
+      if (updated.length === 0) {
+        currentMessageIdRef.current = null;
+      }
+      return updated;
+    });
   };
 
   const handleHandwritingSave = async (svgBlob: Blob) => {
     setUploading(true);
     const formData = new FormData();
     const filename = `handwriting-${Date.now()}.svg`;
+    // Use existing messageId if available, otherwise create a new one
+    const messageId = currentMessageIdRef.current || nanoid(8);
+    currentMessageIdRef.current = messageId;
+    
     formData.append("room", room || "default");
     formData.append("user", name);
-    formData.append("messageId", nanoid(8));
+    formData.append("messageId", messageId);
     formData.append("svgs", svgBlob, filename);
 
     try {
@@ -397,7 +413,7 @@ function App() {
           if (!content.value.trim() && pendingSvgs.length === 0) return;
 
           const chatMessage: ChatMessage = {
-            id: nanoid(8),
+            id: currentMessageIdRef.current || nanoid(8),
             content: content.value,
             user: name,
             role: "user",
@@ -415,6 +431,7 @@ function App() {
 
           content.value = "";
           setPendingSvgs([]);
+          currentMessageIdRef.current = null;
         }}
       >
         <div className="input-row">
