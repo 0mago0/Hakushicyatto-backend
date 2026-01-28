@@ -440,6 +440,44 @@ body, html {
   cursor: pointer;
 }
 
+/* Stroke Width Control */
+.stroke-width-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stroke-width-control > span:first-child {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.width-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+}
+
+.width-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.width-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .handwriting-canvas {
   width: 100%;
   border: 2px solid var(--system-gray-bg);

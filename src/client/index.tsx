@@ -244,17 +244,26 @@ function HandwritingCanvas({
           <button type="button" className="close-btn" onClick={onClose}>×</button>
         </div>
         <div className="handwriting-tools">
-          <label>
-            粗細:
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={strokeWidth}
-              onChange={(e) => setStrokeWidth(Number(e.target.value))}
-            />
-            <span>{strokeWidth}px</span>
-          </label>
+          <div className="stroke-width-control">
+            <span>粗細:</span>
+            <button
+              type="button"
+              className="width-btn"
+              onClick={() => setStrokeWidth((w) => Math.max(1, w - 1))}
+              disabled={strokeWidth <= 1}
+            >
+              −
+            </button>
+            <span className="width-value">{strokeWidth}px</span>
+            <button
+              type="button"
+              className="width-btn"
+              onClick={() => setStrokeWidth((w) => Math.min(20, w + 1))}
+              disabled={strokeWidth >= 20}
+            >
+              +
+            </button>
+          </div>
           <button type="button" onClick={undoLast} disabled={paths.length === 0}>
             ↩ 復原
           </button>
