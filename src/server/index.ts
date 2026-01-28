@@ -109,6 +109,14 @@ async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
   try {
     const formData = await request.formData();
     const files = formData.getAll("svgs") as File[];
+    const room = formData.get("room") as string || "default";
+    const user = formData.get("user") as string || "anonymous";
+    const messageId = formData.get("messageId") as string || crypto.randomUUID();
+
+    // Sanitize room and user names for safe folder paths
+    const safeRoom = room.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safeUser = user.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safeMessageId = messageId.replace(/[^a-zA-Z0-9_-]/g, "_");
 
     if (files.length === 0) {
       return new Response(JSON.stringify({ error: "No files uploaded" }), {
@@ -125,8 +133,8 @@ async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
         continue; // Skip non-SVG files
       }
 
-      const id = crypto.randomUUID();
-      const key = `svgs/${id}/${file.name}`;
+      const fileId = crypto.randomUUID();
+      const key = `svgs/${safeRoom}/${safeUser}/${safeMessageId}/${file.name}`;
 
       // Upload to R2
       await env.SVG_BUCKET.put(key, file.stream(), {
@@ -136,7 +144,7 @@ async function handleSvgUpload(request: Request, env: Env): Promise<Response> {
       });
 
       uploadedSvgs.push({
-        id,
+        id: fileId,
         url: `/api/svg/${key}`,
         filename: file.name,
       });

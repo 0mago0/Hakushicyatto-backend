@@ -276,6 +276,9 @@ function App() {
 
     setUploading(true);
     const formData = new FormData();
+    formData.append("room", room || "default");
+    formData.append("user", name);
+    formData.append("messageId", nanoid(8));
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -312,6 +315,9 @@ function App() {
     setUploading(true);
     const formData = new FormData();
     const filename = `handwriting-${Date.now()}.svg`;
+    formData.append("room", room || "default");
+    formData.append("user", name);
+    formData.append("messageId", nanoid(8));
     formData.append("svgs", svgBlob, filename);
 
     try {
