@@ -358,45 +358,53 @@ function App() {
   };
 
   return (
-    <div className="chat container">
+    <div className="chat-app">
       {showHandwriting && (
         <HandwritingCanvas
           onSave={handleHandwritingSave}
           onClose={() => setShowHandwriting(false)}
         />
       )}
-      {messages.map((message) => (
-        <div key={message.id} className="row message">
-          <div className="two columns user">
-            <div>{message.user}</div>
-            {message.timestamp && (
-              <div className="message-time">
-                {new Date(message.timestamp).toLocaleString()}
+      
+      <div className="messages-container">
+        {messages.map((message) => {
+          const isMe = message.user === name;
+          return (
+            <div key={message.id} className={`message-row ${isMe ? "my-message" : "other-message"}`}>
+              <div className="message-sender">
+                <span className="sender-name">{message.user}</span>
+                {message.timestamp && (
+                  <span className="sender-time">
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-          <div className="ten columns">
-            <div>{message.content}</div>
-            {message.svgs && message.svgs.length > 0 && (
-              <div className="svg-attachments">
-                {message.svgs.map((svg) => (
-                  <img
-                    key={svg.id}
-                    src={svg.url}
-                    alt={svg.filename}
-                    className="svg-inline"
-                    title={svg.filename}
-                  />
-                ))}
+              
+              <div className="message-bubble-wrapper">
+                <div className="message-bubble">
+                  {message.content && <div className="message-text">{message.content}</div>}
+                  {message.svgs && message.svgs.length > 0 && (
+                    <div className="svg-attachments">
+                      {message.svgs.map((svg) => (
+                        <img
+                          key={svg.id}
+                          src={svg.url}
+                          alt={svg.filename}
+                          className="svg-inline"
+                          title={svg.filename}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      ))}
+            </div>
+          );
+        })}
+      </div>
 
       {pendingSvgs.length > 0 && (
         <div className="pending-svgs">
-          <div className="pending-label">待發送的 SVG:</div>
           <div className="pending-list">
             {pendingSvgs.map((svg) => (
               <div key={svg.id} className="pending-svg-item">
@@ -416,7 +424,7 @@ function App() {
       )}
 
       <form
-        className="row message-form"
+        className="message-form"
         onSubmit={(e) => {
           e.preventDefault();
           const content = e.currentTarget.elements.namedItem(

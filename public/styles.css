@@ -1,343 +1,484 @@
-body,
-html {
-  height: 100%;
+/* Apple HIG & Mobile First Design System */
+:root {
+  /* System Colors */
+  --system-blue: #007AFF;
+  --system-blue-dark: #0056b3;
+  --system-gray-bg: #F2F2F7;
+  --system-white: #FFFFFF;
+  --bubble-incoming: #E9E9EB;
+  --bubble-outgoing: #007AFF;
+  
+  /* Text */
+  --text-primary: #000000;
+  --text-secondary: #8E8E93;
+  
+  /* UI Elements */
+  --separator: #C6C6C8;
+  --glass-material: rgba(255, 255, 255, 0.9);
+  --input-bg: #FFFFFF;
+  --input-border: #C6C6C8;
+  
+  /* Spacing */
+  --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --system-blue: #0A84FF;
+    --system-blue-dark: #0060c0;
+    --system-gray-bg: #000000;
+    --system-white: #1C1C1E; /* System Secondary Background */
+    --bubble-incoming: #262628;
+    --bubble-outgoing: #0A84FF;
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #8E8E93;
+    
+    --separator: #38383A;
+    --glass-material: rgba(30, 30, 30, 0.85);
+    --input-bg: #1C1C1E;
+    --input-border: #38383A;
+  }
+}
+
+/* Base Reset & Typography (San Francisco) */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
+}
+
+body, html {
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat {
-  padding-top: 40px;
-}
-
-#root {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow-y: auto;
   height: 100%;
-  /* padding: 10px; */
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background-color: var(--system-gray-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* Prevent body scroll because app handles scrolling */
 }
 
-.message {
-  margin-bottom: 10px;
-}
-
-.message .user {
-  font-weight: bold;
-  text-align: right;
+/* 
+   App Container 
+*/
+#root {
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
 }
 
-.message .remove {
-  position: absolute;
-  width: 22px;
-  height: 20px;
-  left: -60px;
-  /* display: "block", */
-  display: none;
-  padding: 0;
-  line-height: 18px;
-  border: "none";
+.chat-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--system-white);
+  position: relative;
 }
 
-.send-message {
-  padding: 0 15px;
-  margin-left: 10px;
+/* 
+   Messages Container 
+*/
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Momentum scroll */
+  padding: 16px 16px 80px 16px; /* Bottom padding for sticky input */
+  display: flex;
+  flex-direction: column;
 }
 
-.my-input-text::placeholder {
-  color: #ccc;
+/* 
+   Message Row 
+*/
+.message-row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 8px; /* Tighter grouping */
+  animation: messageSlide 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* SVG Upload Styles */
+@keyframes messageSlide {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sender Info */
+.message-sender {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0 12px 4px 12px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.sender-name {
+  font-weight: 500;
+}
+
+/* Alignment Logic */
+.message-row.other-message { align-items: flex-start; }
+.message-row.my-message { align-items: flex-end; }
+
+/* My Message: Hide sender info usually */
+.message-row.my-message .message-sender {
+  display: none; 
+}
+
+/* Message Bubble Wrapper */
+.message-bubble-wrapper {
+  max-width: 75%;
+}
+
+/* Message Bubble */
+.message-bubble {
+  padding: 8px 14px;
+  font-size: 17px;
+  line-height: 22px;
+  border-radius: 18px;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Subtle depth */
+  position: relative;
+}
+
+/* Incoming Bubbles */
+.message-row.other-message .message-bubble {
+  background-color: var(--bubble-incoming);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px; /* Tail effect */
+}
+
+/* Outgoing Bubbles */
+.message-row.my-message .message-bubble {
+  background: linear-gradient(180deg, var(--system-blue) 0%, var(--system-blue-dark) 100%);
+  color: #FFFFFF;
+  border-bottom-right-radius: 4px; /* Tail effect */
+}
+
+.message-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* SVG Attachments */
 .svg-attachments {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 4px;
   margin-top: 4px;
-  align-items: center;
-  vertical-align: middle;
 }
 
 .svg-inline {
-  height: 2.5em;
-  width: auto;
-  vertical-align: middle;
-  display: inline-block;
-  margin: 0 2px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 8px;
+  padding: 4px;
+  height: 3em; 
 }
 
-.svg-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
-  max-width: 150px;
-}
-
-.svg-preview img {
-  max-width: 120px;
-  max-height: 120px;
-  object-fit: contain;
-}
-
-.svg-filename {
-  font-size: 11px;
-  color: #666;
-  margin-top: 4px;
-  word-break: break-all;
-  text-align: center;
-}
-
-.message-time {
-  font-size: 10px;
-  color: #666;
-  margin-top: 4px;
-  white-space: nowrap;
-}
-
-.pending-svgs {
-  margin: 15px 0;
-  padding: 10px;
-  background: #f0f8ff;
-  border: 1px solid #b0d4f1;
-  border-radius: 4px;
-}
-
-.pending-label {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.pending-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.pending-svg-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.pending-svg-item img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.pending-svg-item span {
-  font-size: 12px;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.remove-svg {
-  background: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-}
-
-.remove-svg:hover {
-  background: #cc0000;
-}
-
+/* Input Bar - Sticky Bottom */
 .message-form {
-  margin-top: 10px;
+  position: absolute; /* Changed from fixed to absolute within chat-app */
+  bottom: 0;
+  left: 0; 
+  right: 0;
+  background: var(--glass-material);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--separator);
+  padding: 10px 16px;
+  padding-bottom: max(10px, var(--safe-area-bottom));
+  z-index: 1000;
+  display: flex !important;
+  align-items: center;
 }
 
 .input-row {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* Input Actions */
 .upload-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
   cursor: pointer;
-  font-size: 20px;
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f5f5f5;
+  color: var(--system-blue);
+  width: 32px;
+  height: 32px;
   display: flex;
-  align-items: center;
+  align-items: center; 
   justify-content: center;
+  padding: 0;
+  transition: opacity 0.2s;
 }
 
-.upload-btn:hover {
-  background: #e5e5e5;
-}
+.upload-btn:active { opacity: 0.5; }
 
+/* Text Input */
 .message-input {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  height: 36px !important;
+  margin: 0 !important;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 1px solid var(--input-border) !important;
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  font-size: 16px; /* Avoid auto-zoom on iOS */
+  outline: none;
+  appearance: none; /* Remove default styling */
+  transition: border-color 0.2s;
 }
 
 .message-input::placeholder {
-  color: #ccc;
+  color: var(--text-secondary);
+  opacity: 1;
 }
 
-/* Handwriting Canvas Styles */
-.handwriting-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.message-input:focus {
+  border-color: var(--system-blue) !important;
+}
+
+/* Send Button - Icon Style */
+.send-message {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--system-blue);
+  color: transparent; /* Hide text */
+  border: none;
+  cursor: pointer;
+  margin: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  transition: transform 0.1s;
+  
+  /* Arrow Icon */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: center 55%; /* Optical centering */
+  background-size: 16px;
+}
+
+.send-message:active {
+  transform: scale(0.95);
+  background-color: var(--system-blue-dark);
+}
+
+/* Pending SVGs Bar */
+.pending-svgs {
+  position: absolute; /* Dock to bottom of message area or top of input */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-bottom: 60px; /* Offset for input bar assumption */
+  background-color: transparent; /* Let float */
+  padding: 0 16px;
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none; /* Let clicks pass through empty areas */
+}
+
+.pending-list {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--glass-material);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  pointer-events: auto; /* Re-enable for the bubbly list */
+}
+
+.pending-svg-item {
+  flex: 0 0 auto;
+  background: var(--system-gray-bg);
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.pending-svg-item img {
+  width: 24px;
+  height: 24px;
+}
+
+.remove-svg {
+  background: #8E8E93;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  line-height: 14px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+
+/* Handwriting Modal - Bottom Sheet on Mobile */
+.handwriting-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .handwriting-modal {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  max-width: 90vw;
-  max-height: 90vh;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  background-color: var(--system-white);
+  padding: 24px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+  .handwriting-overlay {
+    align-items: flex-end; /* Bottom sheet */
+  }
+  .handwriting-modal {
+    width: 100%;
+    max-width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin: 0;
+    padding-bottom: var(--safe-area-bottom);
+    animation: slideUp 0.3s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
 }
 
 .handwriting-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .handwriting-header h3 {
-  margin: 0;
   font-size: 18px;
+  font-weight: 600;
+  margin: 0;
 }
 
 .close-btn {
-  background: none;
+  background: var(--system-gray-bg);
+  border-radius: 50%;
+  width: 30px; 
+  height: 30px;
+  font-size: 18px;
+  color: var(--text-secondary);
   border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  line-height: 1;
-}
-
-.close-btn:hover {
-  color: #333;
-}
-
-.handwriting-tools {
   display: flex;
-  gap: 15px;
   align-items: center;
-  margin-bottom: 10px;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Tools Bar */
+.handwriting-tools {
+  background-color: var(--system-gray-bg);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.handwriting-tools label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14px;
-}
-
-.handwriting-tools input[type="color"] {
-  width: 30px;
-  height: 30px;
-  border: none;
-  cursor: pointer;
-}
-
-.handwriting-tools input[type="range"] {
-  width: 80px;
-}
-
 .handwriting-tools button {
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f5f5f5;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--separator);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 13px;
-}
-
-.handwriting-tools button:hover:not(:disabled) {
-  background: #e5e5e5;
-}
-
-.handwriting-tools button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .handwriting-canvas {
-  border: 2px solid #333;
-  border-radius: 4px;
-  cursor: crosshair;
+  width: 100%;
+  border: 2px solid var(--system-gray-bg);
+  border-radius: 12px;
   touch-action: none;
-  display: block;
-  max-width: 100%;
+  cursor: crosshair;
+  background: white; /* Always white canvas even in dark mode initially */
 }
 
+/* Modal Actions */
 .handwriting-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
+  align-items: center; /* Ensure vertical center alignment */
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .handwriting-actions button {
-  padding: 8px 16px;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 20px; /* Consistent pill shape for both */
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
   cursor: pointer;
-  font-size: 14px;
+  height: 44px; /* Explicit height for alignment */
+  line-height: 1; /* Reset line-height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cancel-btn {
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-}
-
-.cancel-btn:hover {
-  background: #e5e5e5;
+  background: transparent;
+  color: var(--system-blue);
 }
 
 .save-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #45a049;
+  background-color: var(--system-blue) !important;
+  color: #FFFFFF !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 20px !important; /* Pill shape */
 }
 
 .save-btn:disabled {
-  background: #ccc;
+  background-color: var(--separator) !important;
+  color: var(--text-secondary) !important;
+  opacity: 1 !important; /* Use solid color for disabled state */
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Hide scrollbar for cleaner look */
+.messages-container::-webkit-scrollbar {
+  width: 0px; 
+  background: transparent; 
 }
