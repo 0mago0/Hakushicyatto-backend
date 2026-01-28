@@ -178,14 +178,20 @@ body, html {
   border-radius: 4px;
 }
 
-/* SVG in outgoing (blue) bubbles - invert strokes to white */
+/* SVG in outgoing (blue) bubbles - force white strokes */
 .message-row.my-message .svg-inline {
-  filter: invert(1) brightness(2);
+  filter: invert(1);
 }
 
-/* SVG in incoming (gray) bubbles - keep original dark strokes */
+/* SVG in incoming (gray) bubbles - black in light mode, white in dark mode */
 .message-row.other-message .svg-inline {
   filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .message-row.other-message .svg-inline {
+    filter: invert(1);
+  }
 }
 
 /* Input Bar - Sticky Bottom */

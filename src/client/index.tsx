@@ -24,7 +24,7 @@ function HandwritingCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [paths, setPaths] = useState<Array<{ points: Array<{ x: number; y: number }>; color: string; width: number }>>([]);
   const [currentPath, setCurrentPath] = useState<Array<{ x: number; y: number }>>([]);
-  const [strokeColor, setStrokeColor] = useState("#000000");
+  const strokeColor = "#000000"; // Fixed to black for consistent display
   const [strokeWidth, setStrokeWidth] = useState(3);
 
   const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -243,14 +243,6 @@ function HandwritingCanvas({
           <button type="button" className="close-btn" onClick={onClose}>×</button>
         </div>
         <div className="handwriting-tools">
-          <label>
-            顏色:
-            <input
-              type="color"
-              value={strokeColor}
-              onChange={(e) => setStrokeColor(e.target.value)}
-            />
-          </label>
           <label>
             粗細:
             <input
